@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ネコ勤労アプリ - ニャン労感謝 (NyanWork)</title>
+  <style>
+    :root {
+      --bg-color: #fdf8f5;
+      --card-bg: #ffffff;
+      --primary: #ff7e5f;
+      --primary-hover: #eb6b4c;
+      --accent: #feb47b;
+      --text: #4a3b32;
+      --sub-text: #8c7b70;
+      --border: #f0dcd3;
+      --badge-bg: #fff0e6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 15px;
+    }
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(220, 150, 120, 0.2);
+      border: 3px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    /* ヘッダー */
+    header {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+      position: relative;
+    }
+    header h1 { font-size: 1.3rem; margin-bottom: 2px; }
+    header p { font-size: 0.75rem; opacity: 0.9; }
+    .save-badge {
+      position: absolute;
+      top: 10px; right: 12px;
+      font-size: 0.65rem;
+      background: rgba(0,0,0,0.2);
+      padding: 3px 8px;
+      border-radius: 10px;
+    }
+
+    /* タブ切り替え */
+    .nav-tabs {
+      display: flex;
+      background: #fff5f0;
+      border-bottom: 2px solid var(--border);
+      overflow-x: auto;
+    }
+    .tab-btn {
+      flex: 1;
+      min-width: 70px;
+      padding: 10px 4px;
+      border: none;
+      background: none;
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: var(--sub-text);
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      background: #ffffff;
+      border-bottom: 3px solid var(--primary);
+    }
+
+    /* メインコンテンツエリア */
+    .tab-content { display: none; padding: 18px; flex: 1; overflow-y: auto; }
+    .tab-content.active { display: block; }
+
+    /* ネコビジュアルエリア */
+    .cat-stage {
+      background: radial-gradient(circle, #fff9f5 0%, #ffece3 100%);
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      border: 2px solid #ffd8c7;
+      margin-bottom: 15px;
+      min-height: 230px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .house-title {
+      font-size: 0.8rem;
+      font-weight: bold;
+      background: #ffffff;
+      padding: 4px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      color: var(--primary);
+    }
+    .cat-wrapper {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+    .cat-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+      transition: transform 0.2s;
+    }
+    .cat-wrapper:active .cat-svg { transform: scale(0.95); }
+    
+    /* 装飾品重ね合わせ用 */
+    .accessory-hat {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      pointer-events: none;
+    }
+
+    /* ネコの吹き出し */
+    .speech-bubble {
+      background: #ffffff;
+      border: 2px solid var(--primary);
+      border-radius: 16px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--primary);
+      position: relative;
+      margin-bottom: 8px;
+      max-width: 90%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .speech-bubble::after {
+      content: ''; position: absolute; bottom: -8px; left: 50%;
+      transform: translateX(-50%);
+      border-width: 8px 8px 0; border-style: solid;
+      border-color: #ffffff transparent;
+    }
+
+    /* 好感度＆プログレス */
+    .stat-bar-group { width: 100%; margin-bottom: 10px; }
+    .stat-label-flex { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px; font-weight: bold; }
+    .progress-outer {
+      background: #eee;
+      border-radius: 10px;
+      height: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-inner {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    /* タイマー・モード切り替え */
+    .pomo-selector {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .pomo-btn {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+    }
+    .pomo-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .timer-display {
+      font-size: 2.2rem;
+      font-weight: bold;
+      text-align: center;
+      font-family: monospace;
+      color: #333;
+      margin: 5px 0 10px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .stat-card {
+      background: #fdf0ea;
+      padding: 10px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-card .val { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
+    .stat-card .sub { font-size: 0.7rem; color: var(--sub-text); }
+
+    /* 操作ボタン */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 126, 95, 0.4);
+      transition: transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn.stop { background: #a0a0a0; box-shadow: none; }
+
+    /* ショップ＆リスト */
+    .category-title {
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin: 15px 0 8px;
+      color: var(--primary);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 4px;
+    }
+    .item-list { display: flex; flex-direction: column; gap: 8px; }
+    .item-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+    .item-info { display: flex; flex-direction: column; }
+    .item-name { font-size: 0.85rem; font-weight: bold; }
+    .item-desc { font-size: 0.7rem; color: var(--sub-text); }
+    .item-btn {
+      padding: 6px 12px;
+      border-radius: 12px;
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .item-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* バトルカード */
+    .battle-card {
+      background: #fef7f2;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .battle-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 0.85rem; }
+    .battle-target { font-size: 0.75rem; color: var(--sub-text); margin: 4px 0 8px; }
+
+    /* 明細書用紙スタイル */
+    .payslip-paper {
+      background: #fffdfa;
+      border: 2px dashed #d0b090;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      line-height: 1.6;
+    }
+    .payslip-header { text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; color: #5a4030; }
+    .payslip-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+
+    /* 特殊演出（ハート・紙吹雪） */
+    .heart-effect {
+      position: absolute;
+      color: #ff4757;
+      font-size: 1.5rem;
+      pointer-events: none;
+      animation: floatUp 1s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <header>
+    <h1>🐾 ニャン労感謝 🐾</h1>
+    <p>ネコ社長のために今日働こう！</p>
+    <div class="save-badge">💾 自動保存完了</div>
+  </header>
+
+  <!-- タブナビゲーション -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('timerTab')">⏱ 勤務</button>
+    <button class="tab-btn" onclick="switchTab('battleTab')">⚔️ 社畜対決</button>
+    <button class="tab-btn" onclick="switchTab('shopTab')">🛒 ショップ</button>
+    <button class="tab-btn" onclick="switchTab('houseTab')">🏠 マイホーム</button>
+    <button class="tab-btn" onclick="switchTab('payslipTab')">📜 明細書</button>
+    <button class="tab-btn" onclick="switchTab('settingsTab')">🐱 相棒/役職</button>
+  </div>
+
+  <!-- 1. タイマー画面 -->
+  <div id="timerTab" class="tab-content active">
+    <div class="cat-stage" id="catStage">
+      <div class="house-title" id="houseDisplayTitle">🏡 Lv.1 雨風をしのぐ段ボール箱</div>
+      <div class="speech-bubble" id="speechBubble">「しっかり稼いでおやつを買うニャ！」</div>
+      <div class="cat-wrapper" onclick="petCat(event)">
+        <!-- 着せ替え帽子表示 -->
+        <div class="accessory-hat" id="hatLayer"></div>
+        <!-- SVG ネコちゃん -->
+        <svg class="cat-svg" viewBox="0 0 100 100" id="catSvg">
+          <ellipse cx="50" cy="65" rx="30" ry="25" id="catBody" fill="#ffb07c"/>
+          <circle cx="50" cy="40" r="22" id="catHead" fill="#ffb07c"/>
+          <polygon points="32,25 25,5 42,20" id="catEarL" fill="#ffb07c"/>
+          <polygon points="68,25 75,5 58,20" id="catEarR" fill="#ffb07c"/>
+          <circle cx="42" cy="38" r="3" fill="#333"/>
+          <circle cx="58" cy="38" r="3" fill="#333"/>
+          <polygon points="50,43 47,41 53,41" fill="#ff7e5f"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ポモドーロモード選択 -->
+    <div class="pomo-selector">
+      <button class="pomo-btn active" id="modeFree" onclick="setTimerMode('free')">通常カウントUP</button>
+      <button class="pomo-btn" id="modePomo25" onclick="setTimerMode(25)">ポモドーロ 25分</button>
+      <button class="pomo-btn" id="modePomo50" onclick="setTimerMode(50)">ポモドーロ 50分</button>
+    </div>
+
+    <!-- 好感度ゲージ (Lv.100上限 & 二次関数カーブ) -->
+    <div class="stat-bar-group">
+      <div class="stat-label-flex">
+        <span>ネコ社長の好感度 <strong id="loveLvDisplay">Lv.1</strong></span>
+        <span id="loveExpDisplay">0 / 100 EXP</span>
+      </div>
+      <div class="progress-outer">
+        <div class="progress-inner" id="loveProgressBar"></div>
+      </div>
+    </div>
+
+    <!-- 本日5時間ノルマゲージ -->
+    <div class="stat-bar-group">
+      <div class="stat-label-flex">
+        <span>本日の規規定勤務 (目標: 5時間)</span>
+        <span id="dailyProgressDisplay">0.0 / 5.0 時間</span>
+      </div>
+      <div class="progress-outer">
+        <div class="progress-inner" id="dailyProgressBar" style="background: linear-gradient(90deg, #42a5f5, #26c6da);"></div>
+      </div>
+    </div>
+
+    <!-- タイマー表示 -->
+    <div class="timer-display" id="timerDisplay">00:00:00</div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="sub">本日の稼ぎ</div>
+        <div class="val" id="todayEarned">¥0</div>
+      </div>
+      <div class="stat-card">
+        <div class="sub">現在の適用時給</div>
+        <div class="val" id="currentWage">¥1,100</div>
+      </div>
+    </div>
+
+    <button id="mainBtn" class="btn" onclick="toggleTimer()">勤労を開始するニャ！</button>
+  </div>
+
+  <!-- 2. 社畜対決バトル -->
+  <div id="battleTab" class="tab-content">
+    <h3 class="category-title">⚔️ 対抗会社の社畜と勤務時間バトル</h3>
+    <p style="font-size: 0.75rem; color: var(--sub-text); margin-bottom: 12px;">
+      本日の勤務時間がライバルの目標に達すると勝利！特別ボーナスがもらえます。
+    </p>
+    <div id="battleList"></div>
+  </div>
+
+  <!-- 3. ショップ画面 -->
+  <div id="shopTab" class="tab-content">
+    <div style="font-size:0.8rem; font-weight:bold; margin-bottom:10px;">
+      所持金: <span id="shopMoney" style="color:var(--primary); font-size:1.1rem;">¥0</span>
+    </div>
+    <h3 class="category-title">🐟 チュール・おやつ (30種類 / 好感度UP)</h3>
+    <div class="item-list" id="treatList"></div>
+
+    <h3 class="category-title">🎾 おもちゃ (30種類 / 好感度UP)</h3>
+    <div class="item-list" id="toyList"></div>
+
+    <h3 class="category-title">👑 着せ替え・装飾品</h3>
+    <div class="item-list" id="dressList"></div>
+  </div>
+
+  <!-- 4. マイホーム画面 -->
+  <div id="houseTab" class="tab-content">
+    <h3 class="category-title">🏠 ニャンコハウス (全30段階 / 1000万〜10億円)</h3>
+    <p style="font-size: 0.75rem; color: var(--sub-text); margin-bottom: 12px;">
+      豪華な家に住むほど好感度の上昇効率が大幅にアップします！
+    </p>
+    <div class="item-list" id="houseList"></div>
+  </div>
+
+  <!-- 5. ニャン給明細書 -->
+  <div id="payslipTab" class="tab-content">
+    <h3 class="category-title">📜 ニャン給明細書</h3>
+    <div class="payslip-paper">
+      <div class="payslip-header">🐾 本日の給与明細 🐾</div>
+      <div class="payslip-row"><span>支給年月日:</span> <span id="psDate">-</span></div>
+      <div class="payslip-row"><span>役職ランク:</span> <span id="psRank">-</span></div>
+      <div class="payslip-row"><span>適用時給:</span> <span id="psWage">-</span></div>
+      <div class="payslip-row"><span>本日労働時間:</span> <span id="psTime">-</span></div>
+      <hr style="margin: 8px 0; border: none; border-top: 1px dashed #ccc;">
+      <div class="payslip-row" style="font-weight:bold; font-size:0.95rem; color:var(--primary);">
+        <span>差引支給額 (ちゅ〜る換算):</span>
+        <span id="psTotal">¥0 (0本分)</span>
+      </div>
+      <p style="margin-top: 10px; font-size: 0.7rem; color: var(--sub-text); text-align: center;">
+        「本日も誠にご苦労様でしたニャ。明日もカリカリ代のために励むニャ！」
+      </p>
+    </div>
+  </div>
+
+  <!-- 6. 設定 / 相棒選択 / 役職 -->
+  <div id="settingsTab" class="tab-content">
+    <h3 class="category-title">👔 現在の役職ランク (全15段階)</h3>
+    <div style="background:#fff0e6; padding:12px; border-radius:12px; margin-bottom:15px; font-size:0.85rem;">
+      役職: <strong id="rankNameDisplay" style="color:var(--primary);">新米見習い下僕</strong><br>
+      累計労働: <span id="totalHoursDisplay">0.0</span> / <span id="nextRankHours">1.0</span> 時間 (伝説まで300時間)
+    </div>
+
+    <h3 class="category-title">🐱 相棒ネコ社長の変更</h3>
+    <div class="item-list" id="catSelectList"></div>
+  </div>
+</div>
+
+<script>
+  /* ===================================================
+     1. ゲームデータ＆データ定義 (全15ランク・全30種アイテム)
+     =================================================== */
+  const GAME_DATA = {
+    totalSeconds: 0,
+    todaySeconds: 0,
+    money: 0,
+    loveExp: 0,
+    loveLv: 1,
+    houseLv: 1,
+    currentCatId: 'orange',
+    equippedHat: null,
+    boughtHats: [],
+    pomoMode: 'free', // 'free', 25, 50
+    pomoRemainingSec: 0,
+    lastDate: new Date().toDateString()
+  };
+
+  // Web Audio API 音響制御
+  function playBeep(freq = 440, duration = 0.1) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration);
+      osc.stop(ctx.currentTime + duration);
+    } catch(e){}
+  }
+
+  // 15段階の昇給ランク（伝説は300時間）
+  const RANKS = [
+    { name: '新米見習い下僕', wage: 1100, hours: 0 },
+    { name: 'カリカリ係見習い', wage: 1200, hours: 1 },
+    { name: 'トイレ掃除職人', wage: 1300, hours: 3 },
+    { name: 'ブラッシング技師', wage: 1450, hours: 6 },
+    { name: 'チュール調達主任', wage: 1600, hours: 10 },
+    { name: 'おもちゃ振付師', wage: 1800, hours: 15 },
+    { name: '膝枕スペシャリスト', wage: 2000, hours: 22 },
+    { name: '専属マッサージ師', wage: 2250, hours: 30 },
+    { name: '缶詰ソムリエ', wage: 2500, hours: 40 },
+    { name: 'ニャン心理カウンセラー', wage: 2800, hours: 55 },
+    { name: 'プレミアム調達官', wage: 3150, hours: 75 },
+    { name: '皇室御用達お世話係', wage: 3500, hours: 100 },
+    { name: '猫界名誉執事', wage: 3900, hours: 140 },
+    { name: '究極のニャンしもべ', wage: 4400, hours: 200 },
+    { name: '伝説の神ニャン奴隷', wage: 5000, hours: 300 }
+  ];
+
+  // 相棒ネコバリエーション（非ドット絵・カラー変更）
+  const CAT_TYPES = [
+    { id: 'orange', name: 'ちゃトラ', color: '#ffb07c' },
+    { id: 'white', name: 'ふわしろねこ', color: '#f5f5f5' },
+    { id: 'black', name: 'ふわくろねこ', color: '#333333' },
+    { id: 'mikeneko', name: 'みけねこ', color: '#e69d62' },
+    { id: 'hachiware', name: 'はちわれ', color: '#52616b' },
+    { id: 'russian', name: 'ろしあんぶるー', color: '#8895a7' },
+    { id: 'pink', name: 'もちもちピンク', color: '#ffb6c1' },
+    { id: 'rainbow', name: '虹ねこ', color: '#a8e6cf' }
+  ];
+
+  // 装飾品（着せ替え帽子）
+  const HATS = [
+    { id: 'ribbon', name: '赤リボン', icon: '🎀', price: 1000 },
+    { id: 'silk', name: 'シルクハット', icon: '🎩', price: 5000 },
+    { id: 'crown', name: '王冠', icon: '👑', price: 20000 },
+    { id: 'cap', name: 'キャスケット帽', icon: '🧢', price: 2500 }
+  ];
+
+  // 対抗会社社畜バトル（最大10時間）
+  const BATTLES = [
+    { id: 1, name: 'まったりスタート社', targetSec: 3 * 3600, reward: 2000 },
+    { id: 2, name: '一般的ホワイト企業', targetSec: 5 * 3600, reward: 5000 },
+    { id: 3, name: '中堅ハードワーク社', targetSec: 7 * 3600, reward: 12000 },
+    { id: 4, name: '強豪ブラック商事', targetSec: 8 * 3600, reward: 25000 },
+    { id: 5, name: '最強社畜帝国', targetSec: 10 * 3600, reward: 60000 }
+  ];
+
+  // アイテム生成（おやつ・おもちゃ 30種類ずつ）
+  function generateItemList(prefix, basePrice, expBase, names) {
+    const list = [];
+    for (let i = 0; i < 30; i++) {
+      const name = names[i] || `${prefix} Grade ${i+1}`;
+      const price = Math.floor(basePrice * Math.pow(1.35, i));
+      const exp = Math.floor(expBase * Math.pow(1.3, i));
+      list.push({ id: `${prefix}_${i}`, name, price, exp });
+    }
+    return list;
+  }
+
+  const TREAT_NAMES = [
+    'まぐろ味ちゅ〜る', 'とりささみちゅ〜る', 'かつお味高級ちゅ〜る', 'ほたて貝柱ちゅ〜る', 'サーモンパテペースト',
+    '黒毛和牛チュール', '黒トリュフ香るチュール', 'キャビアのジュレちゅ〜る', 'フォアグラ贅沢ペースト', '最高級松阪牛スープ',
+    '熟成金目鯛ジュレ', 'イセエビ風味チュール', 'フカヒレスープ缶', '特選アワビ煮込みペースト', '極上ウニペーストちゅ〜る',
+    'シャトーブリアンチュール', '天然スッポンスープ', '純金箔入り豪華ちゅ〜る', '秘伝の特製ニャンジュレ', '銀河の星屑ちゅ〜る',
+    '鳳凰の羽風味ペースト', '龍宮城の御馳走チュール', '古代エジプト王家チュール', '不老不死のニャンエキス', '世界最高峰トリュフちゅ〜る',
+    '神々の贅沢ちゅ〜る', '宇宙ステーション熟成チュール', '次元を超える幻のちゅ〜る', '奇跡のフルコースちゅ〜る', '至高のニャン究極チュール'
+  ];
+  const TREATS = generateItemList('treat', 50, 10, TREAT_NAMES);
+
+  const TOY_NAMES = [
+    'ねこジャラシ', '毛糸のたま', 'シャカシャカペーパー', '羽根つきスティック', 'ネズミのぬいぐるみ',
+    'レーザーポインター', '電動回転おもちゃ', '全自動転がるボール', 'キャットトンネル', 'マッサージャーボール',
+    '電動フェザーダンス', 'バブルマシン', 'ホログラムねずみ', '超音波ボール', '全自動ドローンジャラシ',
+    'AI搭載自律走行おもちゃ', '無重力浮遊ボール', 'VRネズミシミュレーター', 'ロボットアームジャラシ', '磁気浮遊フェザー',
+    'サイバーネズミ Mk-II', '光速レーザーアレイ', '量子おもちゃボール', '亜空間トンネル', '超次元ジャラシ',
+    'タイムマシンおもちゃ', '銀河系ネコおもちゃ', 'プラズマフェザー', '神のねこじゃらし', '全宇宙最高峰おもちゃ'
+  ];
+  const TOYS = generateItemList('toy', 300, 45, TOY_NAMES);
+
+  // ニャンコハウス 30段階 (1000万〜10億円)
+  const HOUSES = [];
+  const houseNames = [
+    '雨風をしのぐ段ボール箱', 'コンパクト猫ケージ', '木もれ日の一戸建て', 'おしゃれなキャットマンション', '広々バルコニー付き住宅',
+    '広大な庭付き一戸建て', '高級デザイナーズマンション', 'プライベートビーチ付き別荘', 'リゾートキャットホテル', '木もれ日のキャット一戸建て',
+    'ゴージャスキャット城', '超高層タワーマンション最上階', '天空のキャットパレス宮殿', '世界最高峰ニャンコフォートレス要塞宮殿'
+  ];
+  for (let i = 1; i <= 30; i++) {
+    let price = 0;
+    if (i > 1) {
+      price = Math.floor(1000000 * Math.pow(1.28, i - 2));
+      if (i === 10) price = 10000000;
+      if (i === 20) price = 100000000;
+      if (i === 30) price = 1000000000; // 10億
+    }
+    const name = houseNames[i-1] || `超豪華ニャンコパレス Lv.${i}`;
+    HOUSES.push({ level: i, name, price, bonus: (i - 1) * 10 });
+  }
+
+  /* ===================================================
+     2. アプリの状態管理＆タイマー処理
+     =================================================== */
+  let timerInterval = null;
+  let isWorking = false;
+
+  function loadData() {
+    const saved = localStorage.getItem('nyan_work_save');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        Object.assign(GAME_DATA, parsed);
+      } catch (e) { console.error("Data load error", e); }
+    }
+    const todayStr = new Date().toDateString();
+    if (GAME_DATA.lastDate !== todayStr) {
+      GAME_DATA.todaySeconds = 0;
+      GAME_DATA.lastDate = todayStr;
+    }
+    renderAll();
+  }
+
+  function saveData() {
+    localStorage.setItem('nyan_work_save', JSON.stringify(GAME_DATA));
+  }
+
+  function getCurrentWage() {
+    const hours = GAME_DATA.totalSeconds / 3600;
+    let rank = RANKS[0];
+    for (let i = RANKS.length - 1; i >= 0; i--) {
+      if (hours >= RANKS[i].hours) { rank = RANKS[i]; break; }
+    }
+    return rank.wage;
+  }
+
+  function setTimerMode(mode) {
+    if (isWorking) return;
+    GAME_DATA.pomoMode = mode;
+    if (mode === 'free') {
+      GAME_DATA.pomoRemainingSec = 0;
+    } else {
+      GAME_DATA.pomoRemainingSec = mode * 60;
+    }
+    document.querySelectorAll('.pomo-btn').forEach(b => b.classList.remove('active'));
+    if (mode === 'free') document.getElementById('modeFree').classList.add('active');
+    if (mode === 25) document.getElementById('modePomo25').classList.add('active');
+    if (mode === 50) document.getElementById('modePomo50').classList.add('active');
+    renderAll();
+  }
+
+  function toggleTimer() {
+    const btn = document.getElementById('mainBtn');
+    const bubble = document.getElementById('speechBubble');
+
+    if (!isWorking) {
+      isWorking = true;
+      playBeep(600, 0.15);
+      btn.innerText = '休憩するニャ（一時停止）';
+      btn.classList.add('stop');
+      bubble.innerText = '「偉いニャ！カタカタ働いてチュール代を稼ぐニャ！」';
+
+      timerInterval = setInterval(() => {
+        GAME_DATA.totalSeconds++;
+        GAME_DATA.todaySeconds++;
+        const wage = getCurrentWage();
+        GAME_DATA.money += (wage / 3600);
+
+        if (GAME_DATA.pomoMode !== 'free') {
+          GAME_DATA.pomoRemainingSec--;
+          if (GAME_DATA.pomoRemainingSec <= 0) {
+            playBeep(880, 0.4);
+            alert('🎉 ポモドーロ達成ニャ！よく頑張ったニャ！おやつタイムにするニャ！');
+            toggleTimer();
+            return;
+          }
+        }
+
+        renderAll();
+        saveData();
+      }, 1000);
+    } else {
+      isWorking = false;
+      playBeep(400, 0.15);
+      clearInterval(timerInterval);
+      btn.innerText = '勤労を開始するニャ！';
+      btn.classList.remove('stop');
+      bubble.innerText = '「お疲れ様ニャ！しっかり休憩するニャ〜」';
+    }
+  }
+
+  /* ===================================================
+     3. 好感度・お世話・ショップ処理
+     =================================================== */
+  function petCat(e) {
+    // 撫でた時は可愛い鳴き声とハートのみ（好感度は上がらない）
+    playBeep(800, 0.1);
+    const heart = document.createElement('div');
+    heart.className = 'heart-effect';
+    heart.innerText = '❤️';
+    heart.style.left = `${e.clientX - 15}px`;
+    heart.style.top = `${e.clientY - 30}px`;
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 1000);
+
+    document.getElementById('speechBubble').innerText = '「ニャ〜ん♪（撫でられて喜んでいる）」';
+  }
+
+  function buyItem(item, type) {
+    if (GAME_DATA.money < item.price) {
+      alert('お金が足りないニャ！もっと働くニャ！');
+      return;
+    }
+    GAME_DATA.money -= item.price;
+    playBeep(700, 0.2);
+
+    // 好感度EXP獲得 (家ボーナス適用)
+    const houseBonus = 1 + (HOUSES[GAME_DATA.houseLv - 1].bonus / 100);
+    const gainedExp = Math.floor(item.exp * houseBonus);
+    addLoveExp(gainedExp);
+
+    document.getElementById('speechBubble').innerText = `「わーい！${item.name}だニャ！嬉しすぎるニャ！」`;
+    renderAll();
+    saveData();
+  }
+
+  function addLoveExp(exp) {
+    GAME_DATA.loveExp += exp;
+    // 高レベルほど上がりにくくなるEXPカーブ (レベル×100)
+    let reqExp = GAME_DATA.loveLv * 100;
+    while (GAME_DATA.loveExp >= reqExp && GAME_DATA.loveLv < 100) {
+      GAME_DATA.loveExp -= reqExp;
+      GAME_DATA.loveLv++;
+      reqExp = GAME_DATA.loveLv * 100;
+      playBeep(1000, 0.3);
+      alert(`🎉 ネコ社長の好感度が Lv.${GAME_DATA.loveLv} に上がったニャ！`);
+    }
+  }
+
+  function buyHat(hat) {
+    if (GAME_DATA.money < hat.price) {
+      alert('お金が足りないニャ！');
+      return;
+    }
+    GAME_DATA.money -= hat.price;
+    if (!GAME_DATA.boughtHats.includes(hat.id)) {
+      GAME_DATA.boughtHats.push(hat.id);
+    }
+    GAME_DATA.equippedHat = hat.id;
+    alert(`🎉 『${hat.name}』を装備したニャ！`);
+    renderAll();
+    saveData();
+  }
+
+  function equipHat(hatId) {
+    GAME_DATA.equippedHat = hatId;
+    renderAll();
+    saveData();
+  }
+
+  function buyHouse(house) {
+    if (GAME_DATA.money < house.price) {
+      alert('お金が足りないニャ！');
+      return;
+    }
+    GAME_DATA.money -= house.price;
+    GAME_DATA.houseLv = house.level;
+    alert(`🎉 『${house.name}』を購入したニャ！お部屋が豪華になったニャ！`);
+    renderAll();
+    saveData();
+  }
+
+  /* ===================================================
+     4. UI描画・更新処理
+     =================================================== */
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function formatTime(sec) {
+    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+    const s = String(sec % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
+
+  function renderAll() {
+    // タイマー表示
+    if (GAME_DATA.pomoMode === 'free') {
+      document.getElementById('timerDisplay').innerText = formatTime(GAME_DATA.todaySeconds);
+    } else {
+      document.getElementById('timerDisplay').innerText = formatTime(Math.max(0, GAME_DATA.pomoRemainingSec));
+    }
+
+    // 金額・時給
+    const wage = getCurrentWage();
+    const todayEarned = Math.floor((GAME_DATA.todaySeconds / 3600) * wage);
+    document.getElementById('todayEarned').innerText = `¥${todayEarned.toLocaleString()}`;
+    document.getElementById('currentWage').innerText = `¥${wage.toLocaleString()}/時`;
+    document.getElementById('shopMoney').innerText = `¥${Math.floor(GAME_DATA.money).toLocaleString()}`;
+
+    // 好感度
+    document.getElementById('loveLvDisplay').innerText = `Lv.${GAME_DATA.loveLv}`;
+    const reqExp = GAME_DATA.loveLv * 100;
+    document.getElementById('loveExpDisplay').innerText = `${GAME_DATA.loveExp} / ${reqExp} EXP`;
+    document.getElementById('loveProgressBar').style.width = `${Math.min(100, (GAME_DATA.loveExp / reqExp) * 100)}%`;
+
+    // 本日ノルマ (5時間)
+    const dailyHours = GAME_DATA.todaySeconds / 3600;
+    document.getElementById('dailyProgressDisplay').innerText = `${dailyHours.toFixed(1)} / 5.0 時間`;
+    document.getElementById('dailyProgressBar').style.width = `${Math.min(100, (dailyHours / 5.0) * 100)}%`;
+
+    // マイホーム表示
+    const house = HOUSES[GAME_DATA.houseLv - 1];
+    document.getElementById('houseDisplayTitle').innerText = `🏡 Lv.${house.level} ${house.name}`;
+
+    // ネコの色・見た目
+    const catObj = CAT_TYPES.find(c => c.id === GAME_DATA.currentCatId) || CAT_TYPES[0];
+    document.getElementById('catBody').setAttribute('fill', catObj.color);
+    document.getElementById('catHead').setAttribute('fill', catObj.color);
+    document.getElementById('catEarL').setAttribute('fill', catObj.color);
+    document.getElementById('catEarR').setAttribute('fill', catObj.color);
+
+    // 帽子着せ替え表示
+    const hatObj = HATS.find(h => h.id === GAME_DATA.equippedHat);
+    document.getElementById('hatLayer').innerText = hatObj ? hatObj.icon : '';
+
+    // 役職ランク
+    const totalHours = GAME_DATA.totalSeconds / 3600;
+    let curRank = RANKS[0], nextRank = RANKS[1];
+    for (let i = RANKS.length - 1; i >= 0; i--) {
+      if (totalHours >= RANKS[i].hours) {
+        curRank = RANKS[i];
+        nextRank = RANKS[i+1] || RANKS[i];
+        break;
+      }
+    }
+    document.getElementById('rankNameDisplay').innerText = curRank.name;
+    document.getElementById('totalHoursDisplay').innerText = totalHours.toFixed(1);
+    document.getElementById('nextRankHours').innerText = nextRank.hours;
+
+    // 給与明細データ更新
+    document.getElementById('psDate').innerText = new Date().toLocaleDateString();
+    document.getElementById('psRank').innerText = curRank.name;
+    document.getElementById('psWage').innerText = `¥${wage.toLocaleString()}/時間`;
+    document.getElementById('psTime').innerText = `${(GAME_DATA.todaySeconds / 3600).toFixed(2)} 時間`;
+    const churuCount = Math.floor(todayEarned / 50);
+    document.getElementById('psTotal').innerText = `¥${todayEarned.toLocaleString()} (${churuCount}本分)`;
+
+    renderLists();
+  }
+
+  function renderLists() {
+    // おやつショップ (30種)
+    document.getElementById('treatList').innerHTML = TREATS.map(item => `
+      <div class="item-card">
+        <div class="item-info">
+          <div class="item-name">${item.name}</div>
+          <div class="item-desc">好感度 +${item.exp} EXP</div>
+        </div>
+        <button class="item-btn" onclick='buyItem(${JSON.stringify(item)}, "treat")'>
+          ¥${item.price.toLocaleString()}
+        </button>
+      </div>
+    `).join('');
+
+    // おもちゃショップ (30種)
+    document.getElementById('toyList').innerHTML = TOYS.map(item => `
+      <div class="item-card">
+        <div class="item-info">
+          <div class="item-name">${item.name}</div>
+          <div class="item-desc">好感度 +${item.exp} EXP</div>
+        </div>
+        <button class="item-btn" onclick='buyItem(${JSON.stringify(item)}, "toy")'>
+          ¥${item.price.toLocaleString()}
+        </button>
+      </div>
+    `).join('');
+
+    // 着せ替えショップ
+    document.getElementById('dressList').innerHTML = HATS.map(h => {
+      const isBought = GAME_DATA.boughtHats.includes(h.id);
+      const isEquipped = GAME_DATA.equippedHat === h.id;
+      return `
+        <div class="item-card">
+          <div class="item-info">
+            <div class="item-name">${h.icon} ${h.name}</div>
+          </div>
+          ${isBought 
+            ? `<button class="item-btn" onclick="equipHat('${h.id}')" ${isEquipped ? 'disabled' : ''}>
+                ${isEquipped ? '装着中' : '着替える'}
+               </button>`
+            : `<button class="item-btn" onclick='buyHat(${JSON.stringify(h)})'>¥${h.price.toLocaleString()}</button>`
+          }
+        </div>
+      `;
+    }).join('');
+
+    // ニャンコハウス購入リスト (30段階)
+    document.getElementById('houseList').innerHTML = HOUSES.map(h => `
+      <div class="item-card" style="${GAME_DATA.houseLv === h.level ? 'border:2px solid var(--primary); background:#fff0e6;' : ''}">
+        <div class="item-info">
+          <div class="item-name">Lv.${h.level} ${h.name}</div>
+          <div class="item-desc">好感度ボーナス: +${h.bonus}%</div>
+        </div>
+        ${GAME_DATA.houseLv >= h.level 
+          ? `<span style="font-size:0.75rem; font-weight:bold; color:var(--primary);">所有済み</span>`
+          : `<button class="item-btn" onclick='buyHouse(${JSON.stringify(h)})'>¥${h.price.toLocaleString()}</button>`
+        }
+      </div>
+    `).join('');
+
+    // 対抗会社社畜バトル
+    document.getElementById('battleList').innerHTML = BATTLES.map(b => {
+      const isCleared = GAME_DATA.todaySeconds >= b.targetSec;
+      return `
+        <div class="battle-card">
+          <div class="battle-header">
+            <span>${b.name}</span>
+            <span style="color:${isCleared ? '#2e7d32' : 'var(--primary)'}">
+              ${isCleared ? '✨ 勝利達成！' : '挑戦中'}
+            </span>
+          </div>
+          <div class="battle-target">目標本日勤務: ${b.targetSec / 3600} 時間（報酬: ¥${b.reward.toLocaleString()}）</div>
+          <div class="progress-outer">
+            <div class="progress-inner" style="width:${Math.min(100, (GAME_DATA.todaySeconds / b.targetSec) * 100)}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 相棒選択
+    document.getElementById('catSelectList').innerHTML = CAT_TYPES.map(c => `
+      <div class="item-card">
+        <div class="item-info">
+          <div class="item-name">${c.name}</div>
+        </div>
+        <button class="item-btn" onclick="selectCat('${c.id}')" ${GAME_DATA.currentCatId === c.id ? 'disabled' : ''}>
+          ${GAME_DATA.currentCatId === c.id ? '相棒中' : '相棒にする'}
+        </button>
+      </div>
+    `).join('');
+  }
+
+  function selectCat(catId) {
+    GAME_DATA.currentCatId = catId;
+    renderAll();
+    saveData();
+  }
+
+  // 自動保存フック
+  window.addEventListener('beforeunload', saveData);
+  window.addEventListener('pagehide', saveData);
+
+  // 初期化起動
+  window.onload = loadData;
+</script>
+</body>
+</html>
